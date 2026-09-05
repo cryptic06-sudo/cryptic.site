@@ -1,35 +1,145 @@
-let socket = null;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>cryptic.site - Deriv Digit Intelligence Lab</title>
+    <style>
+        body {
+            background-color: #0d1117;
+            color: #c9d1d9;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            max-width: 500px;
+            width: 100%;
+            background: #161b22;
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid #30363d;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+        h1 { font-size: 1.5rem; margin-bottom: 4px; color: #58a6ff; }
+        p.subtitle { color: #8b949e; margin-top: 0; font-size: 0.9rem; }
+        .btn-group { display: flex; gap: 10px; margin: 20px 0; justify-content: center; }
+        button {
+            padding: 10px 18px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+        }
+        .btn-connect { background-color: #238636; color: white; }
+        .btn-disconnect { background-color: #da3633; color: white; }
+        .card {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 15px;
+        }
+        .status-badge {
+            font-weight: bold;
+            color: #f85149;
+        }
+        .status-badge.connected { color: #3fb950; }
+        .digit-display {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #58a6ff;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
 
-function connectDeriv() {
-    // 1089 is Deriv's free testing App ID
-    const appId = 1089; 
+    <div class="container">
+        <h1>cryptic.site</h1>
+        <p class="subtitle">Deriv Digit Intelligence Lab</p>
 
-    // Open connection
-    socket = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${appId}`);
+        <div class="btn-group">
+            <button class="btn-connect" onclick="connectDeriv()">Connect Deriv</button>
+            <button class="btn-disconnect" onclick="disconnectDeriv()">Disconnect</button>
+        </div>
 
-    socket.onopen = function() {
-        // Find status element and change text to Connected
-        const statusText = document.getElementById("status") || document.querySelector("p");
-        if (statusText) statusText.innerText = "Connected";
+        <div class="card">
+            <h3>Connection Status</h3>
+            <p>Status: <span id="status" class="status-badge">Disconnected</span></p>
+            <div id="latest-digit" class="digit-display">--</div>
+        </div>
+    </div>
 
-        // Start receiving live digits for Volatility 100 Index
-        socket.send(JSON.stringify({
-            ticks: "R_100",
-            subscribe: 1
-        }));
-    };
+    <script>
+        let socket = null;
 
-    socket.onmessage = function(event) {
-        const data = JSON.parse(event.data);
-        console.log("Data received:", data);
-    };
+        function connectDeriv() {
+            const appId = 1089; // Deriv testing App ID
+            
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                alert("Already connected!");
+                return;
+            }
 
-    socket.onerror = function(err) {
-        alert("Connection Error. Check your internet or App ID.");
-    };
+            const statusText = document.getElementById("status");
+            if (statusText) statusText.innerText = "Connecting...";
 
-    socket.onclose = function() {
-        const statusText = document.getElementById("status") || document.querySelector("p");
-        if (statusText) statusText.innerText = "Disconnected";
-    };
-}
+            socket = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${appId}`);
+
+            socket.onopen = function() {
+                if (statusText) {
+                    statusText.innerText = "Connected";
+                    statusText.classList.add("connected");
+                }
+
+                // Subscribe to live tick stream for Volatility 100 Index
+                socket.send(JSON.stringify({
+                    ticks: "R_100",
+                    subscribe: 1
+                }));
+            };
+
+            socket.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                
+                if (data.msg_type === 'tick') {
+                    const price = data.tick.quote.toString();
+                    const lastDigit = price.slice(-1);
+                    
+                    const digitDisplay = document.getElementById("latest-digit");
+                    if (digitDisplay) {
+                        digitDisplay.innerText = lastDigit;
+                    }
+                }
+            };
+
+            socket.onerror = function(err) {
+                alert("Connection failed. Please check network.");
+                if (statusText) {
+                    statusText.innerText = "Error";
+                    statusText.classList.remove("connected");
+                }
+            };
+
+            socket.onclose = function() {
+                if (statusText) {
+                    statusText.innerText = "Disconnected";
+                    statusText.classList.remove("connected");
+                }
+            };
+        }
+
+        function disconnectDeriv() {
+            if (socket) {
+                socket.close();
+            }
+        }
+    </script>
+</body>
+</html>
