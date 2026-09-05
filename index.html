@@ -99,30 +99,5 @@
       };
 
       ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        if (data.tick) {
-          tickEl.textContent = `R_100 Tick: ${data.tick.quote}`;
-        }
-      };
-
-      ws.onerror = (error) => {
-        statusEl.textContent = 'Connection error occurred.';
-        statusEl.style.color = 'var(--bad)';
-      };
-
-      ws.onclose = () => {
-        statusEl.textContent = 'Disconnected';
-        statusEl.style.color = 'var(--muted)';
-        tickEl.textContent = '--';
-      };
-    });
-
-    logoutBtn.addEventListener('click', () => {
-      if (ws) {
-        ws.close();
-        ws = null;
-      }
-    });
-  </script>
-</body>
-</html>
+        const data = JSON.
+          
