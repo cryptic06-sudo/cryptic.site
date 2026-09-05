@@ -1,16 +1,17 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
+<!DO<<!DOCTYPE html>
+<html<html lang="en">
+<head<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>cryptic.site - Deriv Digit Intelligence Lab</title>
     <style>
+        * { box-sizing: border-box; }
         body {
             background-color: #0d1117;
             color: #c9d1d9;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 16px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -19,17 +20,18 @@
             max-width: 500px;
             width: 100%;
             background: #161b22;
-            padding: 24px;
+            padding: 20px;
             border-radius: 12px;
             border: 1px solid #30363d;
             box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-            text-align: center;
         }
-        h1 { font-size: 1.5rem; margin-bottom: 4px; color: #58a6ff; }
-        p.subtitle { color: #8b949e; margin-top: 0; font-size: 0.9rem; }
-        .btn-group { display: flex; gap: 10px; margin: 20px 0; justify-content: center; }
+        h1 { font-size: 1.4rem; margin: 0 0 4px 0; color: #58a6ff; text-align: center; }
+        p.subtitle { color: #8b949e; margin: 0 0 16px 0; font-size: 0.85rem; text-align: center; }
+        
+        .btn-group { display: flex; gap: 10px; margin-bottom: 16px; }
         button {
-            padding: 10px 18px;
+            flex: 1;
+            padding: 12px;
             font-size: 14px;
             font-weight: bold;
             border-radius: 6px;
@@ -38,24 +40,93 @@
         }
         .btn-connect { background-color: #238636; color: white; }
         .btn-disconnect { background-color: #da3633; color: white; }
+        
         .card {
             background: #0d1117;
             border: 1px solid #30363d;
             border-radius: 8px;
-            padding: 16px;
-            margin-top: 15px;
+            padding: 14px;
+            margin-bottom: 12px;
         }
-        .status-badge {
-            font-weight: bold;
-            color: #f85149;
+        .card-title {
+            font-size: 0.85rem;
+            color: #8b949e;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
         }
+        .status-badge { font-weight: bold; color: #f85149; }
         .status-badge.connected { color: #3fb950; }
-        .digit-display {
-            font-size: 3rem;
+        
+        .main-display {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .digit-large {
+            font-size: 2.8rem;
             font-weight: bold;
             color: #58a6ff;
-            margin-top: 10px;
         }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .stat-box {
+            background: #161b22;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+            text-align: center;
+        }
+        .stat-val { font-size: 1.2rem; font-weight: bold; color: #f0f6fc; }
+        .stat-lbl { font-size: 0.75rem; color: #8b949e; margin-top: 2px; }
+
+        .freq-bar-container { margin-top: 6px; }
+        .freq-row {
+            display: flex;
+            align-items: center;
+            font-size: 0.75rem;
+            margin-bottom: 4px;
+        }
+        .freq-digit { width: 18px; font-weight: bold; }
+        .freq-track {
+            flex: 1;
+            background: #21262d;
+            height: 10px;
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 0 8px;
+        }
+        .freq-fill {
+            height: 100%;
+            background: #1f6beb;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .freq-count { width: 25px; text-align: right; color: #8b949e; }
+
+        .history-list {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+        }
+        .history-item {
+            min-width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.85rem;
+            background: #21262d;
+        }
+        .is-even { border: 1px solid #3fb950; color: #3fb950; }
+        .is-odd { border: 1px solid #f85149; color: #f85149; }
     </style>
 </head>
 <body>
@@ -65,40 +136,94 @@
         <p class="subtitle">Deriv Digit Intelligence Lab</p>
 
         <div class="btn-group">
-            <button class="btn-connect" onclick="connectDeriv()">Connect Deriv</button>
+            <button class="btn-connect" onclick="connectDeriv()">Connect</button>
             <button class="btn-disconnect" onclick="disconnectDeriv()">Disconnect</button>
         </div>
 
+        <!-- Connection Status & Live Digit -->
         <div class="card">
-            <h3>Connection Status</h3>
-            <p>Status: <span id="status" class="status-badge">Disconnected</span></p>
-            <div id="latest-digit" class="digit-display">--</div>
+            <div class="card-title">Live Feed</div>
+            <div class="main-display">
+                <div>
+                    Status: <span id="status" class="status-badge">Disconnected</span>
+                    <div style="font-size: 0.8rem; color: #8b949e; margin-top: 4px;">Ticks Received: <span id="tick-count">0</span></div>
+                </div>
+                <div id="latest-digit" class="digit-large">--</div>
+            </div>
+        </div>
+
+        <!-- Recent Ticks -->
+        <div class="card">
+            <div class="card-title">Recent Ticks (Last 10)</div>
+            <div id="history" class="history-list"></div>
+        </div>
+
+        <!-- Statistical Ratios -->
+        <div class="card">
+            <div class="card-title">Analysis Ratios</div>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div id="even-ratio" class="stat-val">0%</div>
+                    <div class="stat-lbl">Even Digits</div>
+                </div>
+                <div class="stat-box">
+                    <div id="odd-ratio" class="stat-val">0%</div>
+                    <div class="stat-lbl">Odd Digits</div>
+                </div>
+                <div class="stat-box">
+                    <div id="under-ratio" class="stat-val">0%</div>
+                    <div class="stat-lbl">Under (0–4)</div>
+                </div>
+                <div class="stat-box">
+                    <div id="over-ratio" class="stat-val">0%</div>
+                    <div class="stat-lbl">Over (5–9)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Digit Frequency -->
+        <div class="card">
+            <div class="card-title">Digit Frequency Distribution</div>
+            <div id="frequency-bars" class="freq-bar-container"></div>
         </div>
     </div>
 
     <script>
         let socket = null;
+        let digitsHistory = [];
+        let counts = Array(10).fill(0);
+        let totalTicks = 0;
+
+        // Render frequency bar layout on init
+        function initBars() {
+            const container = document.getElementById("frequency-bars");
+            container.innerHTML = "";
+            for (let i = 0; i <= 9; i++) {
+                container.innerHTML += `
+                    <div class="freq-row">
+                        <span class="freq-digit">${i}</span>
+                        <div class="freq-track"><div id="bar-${i}" class="freq-fill"></div></div>
+                        <span id="cnt-${i}" class="freq-count">0</span>
+                    </div>
+                `;
+            }
+        }
+        initBars();
 
         function connectDeriv() {
-            const appId = 1089; // Deriv testing App ID
+            const appId = 1089;
             
-            if (socket && socket.readyState === WebSocket.OPEN) {
-                alert("Already connected!");
-                return;
-            }
+            if (socket && socket.readyState === WebSocket.OPEN) return;
 
             const statusText = document.getElementById("status");
-            if (statusText) statusText.innerText = "Connecting...";
+            statusText.innerText = "Connecting...";
 
             socket = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${appId}`);
 
             socket.onopen = function() {
-                if (statusText) {
-                    statusText.innerText = "Connected";
-                    statusText.classList.add("connected");
-                }
+                statusText.innerText = "Connected";
+                statusText.classList.add("connected");
 
-                // Subscribe to live tick stream for Volatility 100 Index
                 socket.send(JSON.stringify({
                     ticks: "R_100",
                     subscribe: 1
@@ -109,36 +234,68 @@
                 const data = JSON.parse(event.data);
                 
                 if (data.msg_type === 'tick') {
-                    const price = data.tick.quote.toString();
-                    const lastDigit = price.slice(-1);
-                    
-                    const digitDisplay = document.getElementById("latest-digit");
-                    if (digitDisplay) {
-                        digitDisplay.innerText = lastDigit;
-                    }
+                    const digit = parseInt(data.tick.quote.toString().slice(-1));
+                    updateIntelligence(digit);
                 }
             };
 
-            socket.onerror = function(err) {
-                alert("Connection failed. Please check network.");
-                if (statusText) {
-                    statusText.innerText = "Error";
-                    statusText.classList.remove("connected");
-                }
+            socket.onerror = function() {
+                statusText.innerText = "Error";
+                statusText.classList.remove("connected");
             };
 
             socket.onclose = function() {
-                if (statusText) {
-                    statusText.innerText = "Disconnected";
-                    statusText.classList.remove("connected");
-                }
+                statusText.innerText = "Disconnected";
+                statusText.classList.remove("connected");
             };
         }
 
-        function disconnectDeriv() {
-            if (socket) {
-                socket.close();
+        function updateIntelligence(digit) {
+            totalTicks++;
+            document.getElementById("tick-count").innerText = totalTicks;
+            document.getElementById("latest-digit").innerText = digit;
+
+            // Update Counts and History
+            counts[digit]++;
+            digitsHistory.unshift(digit);
+            if (digitsHistory.length > 50) digitsHistory.pop();
+
+            // Update Frequency Bars
+            for (let i = 0; i <= 9; i++) {
+                const pct = totalTicks > 0 ? ((counts[i] / totalTicks) * 100).toFixed(0) : 0;
+                document.getElementById(`bar-${i}`).style.width = pct + "%";
+                document.getElementById(`cnt-${i}`).innerText = counts[i];
             }
+
+            // Update Ratios
+            let evens = 0, unders = 0;
+            digitsHistory.forEach(d => {
+                if (d % 2 === 0) evens++;
+                if (d < 5) unders++;
+            });
+
+            const totalHist = digitsHistory.length;
+            const evenPct = Math.round((evens / totalHist) * 100);
+            const oddPct = 100 - evenPct;
+            const underPct = Math.round((unders / totalHist) * 100);
+            const overPct = 100 - underPct;
+
+            document.getElementById("even-ratio").innerText = evenPct + "%";
+            document.getElementById("odd-ratio").innerText = oddPct + "%";
+            document.getElementById("under-ratio").innerText = underPct + "%";
+            document.getElementById("over-ratio").innerText = overPct + "%";
+
+            // Update History List UI
+            const histContainer = document.getElementById("history");
+            histContainer.innerHTML = "";
+            digitsHistory.slice(0, 10).forEach(d => {
+                const cls = d % 2 === 0 ? "is-even" : "is-odd";
+                histContainer.innerHTML += `<div class="history-item ${cls}">${d}</div>`;
+            });
+        }
+
+        function disconnectDeriv() {
+            if (socket) socket.close();
         }
     </script>
 </body>
