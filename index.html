@@ -1,103 +1,35 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>cryptic.site — Deriv Digit Intelligence</title>
-  <style>
-    :root {
-      --bg: #080b10;
-      --card: #111722;
-      --line: #273142;
-      --txt: #edf2f7;
-      --muted: #8c99aa;
-      --accent: #7c5cff;
-      --good: #35c46a;
-      --warn: #e5ad35;
-      --bad: #f05b6f;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background: radial-gradient(circle at top, #15112a, #080b10 42%);
-      color: var(--txt);
-      font-family: Inter, system-ui, sans-serif;
-    }
-    .wrap { max-width: 1180px; margin: auto; padding: 22px; }
-    .top { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
-    .brand { font-size: 28px; font-weight: 900; letter-spacing: -1px; }
-    .brand span { color: #9b86ff; }
-    .card {
-      background: rgba(17, 23, 34, .94);
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      padding: 18px;
-      margin: 13px 0;
-      box-shadow: 0 8px 30px #0004;
-    }
-    .muted { color: var(--muted); }
-    button, select {
-      border: 1px solid var(--line);
-      background: #1b2330;
-      color: #fff;
-      border-radius: 9px;
-      padding: 10px 13px;
-      font-weight: 750;
-      margin: 3px;
-      cursor: pointer;
-    }
-    button.primary { background: var(--accent); border-color: var(--accent); }
-    .statusline { margin-top: 15px; font-weight: bold; }
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <div class="top">
-      <div>
-        <div class="brand">cryptic<span>.site</span></div>
-        <div class="muted">Deriv Digit Intelligence Lab</div>
-      </div>
-      <div>
-        <button id="login" class="primary">Connect Deriv</button>
-        <button id="logout">Disconnect</button>
-      </div>
-    </div>
+let socket = null;
 
-    <div class="card">
-      <h3>Connection Status</h3>
-      <div id="status" class="statusline muted">Disconnected</div>
-      <div id="tick-display" style="font-size: 24px; margin-top: 10px;">--</div>
-    </div>
-  </div>
+function connectDeriv() {
+    // 1089 is Deriv's free testing App ID
+    const appId = 1089; 
 
-  <script>
-    let ws = null;
-    const APP_ID = '1089'; // Replace with your custom Deriv App ID if you have one
+    // Open connection
+    socket = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${appId}`);
 
-    const loginBtn = document.getElementById('login');
-    const logoutBtn = document.getElementById('logout');
-    const statusEl = document.getElementById('status');
-    const tickEl = document.getElementById('tick-display');
+    socket.onopen = function() {
+        // Find status element and change text to Connected
+        const statusText = document.getElementById("status") || document.querySelector("p");
+        if (statusText) statusText.innerText = "Connected";
 
-    loginBtn.addEventListener('click', () => {
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        statusEl.textContent = 'Already connected!';
-        return;
-      }
-
-      statusEl.textContent = 'Connecting to Deriv WebSocket...';
-      ws = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${APP_ID}`);
-
-      ws.onopen = () => {
-        statusEl.textContent = 'Connected! Subscribing to Volatility 100 Index...';
-        statusEl.style.color = 'var(--good)';
-        
-        // Subscribe to ticks for Volatility 100 Index
-        ws.send(JSON.stringify({
-          ticks: 'R_100'
+        // Start receiving live digits for Volatility 100 Index
+        socket.send(JSON.stringify({
+            ticks: "R_100",
+            subscribe: 1
         }));
-      };
+    };
 
-      ws.onmessage = (event) => {
-        const data = JSON.
-          
+    socket.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+        console.log("Data received:", data);
+    };
+
+    socket.onerror = function(err) {
+        alert("Connection Error. Check your internet or App ID.");
+    };
+
+    socket.onclose = function() {
+        const statusText = document.getElementById("status") || document.querySelector("p");
+        if (statusText) statusText.innerText = "Disconnected";
+    };
+}
